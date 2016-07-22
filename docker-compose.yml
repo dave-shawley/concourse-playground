@@ -1,0 +1,33 @@
+frontend:
+  build: frontend
+  ports:
+    - 8080
+    - 8181
+    - 9999:80
+  links:
+    - scheduler
+
+postgres:
+  build: database
+  ports:
+    - 5432
+  environment:
+    CONCOURSE_PASSWORD_HASH: e9c57016c3f4d87870fe4e4ecb7d7a6b
+    POSTGRES_PASSWORD: md5b988cfaa5ea2a14c1ec79d59a5a949f6
+
+scheduler:
+  build: scheduler
+  volumes:
+    - ./keys:/app/keystore
+  links:
+    - postgres
+  environment:
+    CONCOURSE_EXTERNAL_URL: http://127.0.0.1:9999/
+
+worker:
+  build: worker
+  links:
+    - frontend
+  privileged: true
+  volumes:
+    - ./keys:/app/keystore

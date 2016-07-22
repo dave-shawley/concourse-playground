@@ -1,0 +1,60 @@
+#!/bin/sh -e
+#
+
+myip=$(awk "/$(hostname)/ {print \$1}" /etc/hosts)
+
+cat >/tmp/haproxy-cfg<<EOF
+global
+  stats socket ipv4@${myip}:8181 level admin
+
+defaults
+  timeout connect 2500ms
+  timeout client 5000ms
+  timeout server 5000ms
+
+frontend http-in
+  bind *:80
+  default_backend schedulers-atc
+
+frontend ssh-in
+  bind *:2222
+  default_backend schedulers-tsa
+
+frontend stats-in
+  mode http
+  bind *:8080
+  stats enable
+  stats uri /
+  stats refresh 5s
+  stats show-desc Concourse-CI
+  stats show-legends
+  stats show-node
+
+EOF
+
+cat >/tmp/haproxy-atc<<EOF
+backend schedulers-atc
+  mode http
+  option httpchk GET /api/v1/info
+EOF
+
+cat >/tmp/haproxy-tsa<<EOF
+backend schedulers-tsa
+  mode tcp
+  timeout tunnel 60s
+EOF
+
+idx=1
+grep 'scheduler_[0-9]' /etc/hosts | cut -f1 | sort -u | while
+  read ip
+do
+  echo "  server scheduler-atc-${idx} ${ip}:8080 check" >> /tmp/haproxy-atc
+  echo "  server scheduler-tsa-${idx} ${ip}:2222 check" >> /tmp/haproxy-tsa
+  idx=`expr $idx + 1`
+done
+echo "" >> /tmp/haproxy-atc
+echo "" >> /tmp/haproxy-tsa
+
+mkdir /app
+cat /tmp/haproxy-cfg /tmp/haproxy-atc /tmp/haproxy-tsa >> /app/haproxy.cfg
+exec haproxy -f /app/haproxy.cfg
