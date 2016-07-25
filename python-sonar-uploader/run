@@ -1,0 +1,36 @@
+#!/bin/sh -e
+#
+
+top_dir=$(pwd)
+splice() {
+  case "$1"
+    in
+    /*) echo $1;;
+    *)  echo "$top_dir/$1";;
+  esac
+}
+SONAR_SOURCE_DIR=$(splice "$SONAR_SOURCE_DIR")
+SONAR_XUNIT_XML=$(splice "$SONAR_XUNIT_XML")
+SONAR_COVERAGE_XML=$(splice "$SONAR_COVERAGE_XML")
+
+cd "$SONAR_SOURCE_DIR"
+
+if test -z "$SONAR_PROJECT_NAME"
+then
+  SONAR_PROJECT_NAME=$(python3 $SONAR_SOURCE_DIR/setup.py --name)
+fi
+if test -z "$SONAR_PROJECT_VERSION"
+then
+  SONAR_PROJECT_VERSION=$(python3 $SONAR_SOURCE_DIR/setup.py --version)
+fi
+
+cat >>sonar-project.properties<<EOF
+sonar.host.url=$SONAR_URL
+sonar.projectName=$SONAR_PROJECT_NAME
+sonar.projectVersion=$SONAR_PROJECT_VERSION
+sonar.projectKey=$SONAR_PROJECT_KEY
+sonar.sources=.
+sonar.python.coverage.reportPath=$SONAR_COVERAGE_XML
+sonar.python.xunit.reportPath=$SONAR_XUNIT_XML
+EOF
+/app/bin/sonar-scanner
