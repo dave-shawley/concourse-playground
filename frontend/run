@@ -16,6 +16,10 @@ frontend http-in
   bind *:80
   default_backend schedulers-atc
 
+frontend sonar-in
+  bind *:9000
+  default_backend sonar
+
 frontend ssh-in
   bind *:2222
   default_backend schedulers-tsa
@@ -55,6 +59,21 @@ done
 echo "" >> /tmp/haproxy-atc
 echo "" >> /tmp/haproxy-tsa
 
+cat >/tmp/sonar<<EOF
+backend sonar
+  mode http
+  option httpchk GET /api/properties
+EOF
+
+idx=1
+grep 'sonar_[0-9]' /etc/hosts | cut -f1 | sort -u | while
+  read ip
+do
+  echo "  server sonar-${idx} ${ip}:9000 check" >> /tmp/sonar
+  idx=`expr $idx + 1`
+done
+echo "" >> /tmp/sonar
+
 mkdir /app
-cat /tmp/haproxy-cfg /tmp/haproxy-atc /tmp/haproxy-tsa >> /app/haproxy.cfg
+cat /tmp/haproxy-cfg /tmp/haproxy-atc /tmp/haproxy-tsa /tmp/sonar >> /app/haproxy.cfg
 exec haproxy -f /app/haproxy.cfg
