@@ -1,0 +1,27 @@
+# vim: set ft=sh ts=2 sw=2 sts=2 et:
+
+top_dir=$(pwd)
+splice() {
+  case "$1"
+    in
+    /*) echo "$1";;
+    *)  echo "$top_dir/$1";;
+  esac
+}
+PYTHON_BUILD_SOURCE=$(splice "$PYTHON_BUILD_SOURCE")
+PYTHON_BUILD_OUTPUT=$(splice "$PYTHON_BUILD_OUTPUT")
+export PYTHON_BUILD_SOURCE PYTHON_BUILD_OUTPUT
+
+case `$PYTHON_BUILD_PYTHON -c 'import sys; sys.stdout.write("%d.%d\n" % sys.version_info[0:2])'`
+in
+2.*) PIP=pip ;;
+3.*) PIP=pip3 ;;
+*) echo "UNKNOWN PYTHON VERSION"; exit 2 ;;
+esac
+export PIP
+
+
+if test ! -d "$PYTHON_BUILD_OUTPUT"
+then
+  mkdir -p "$PYTHON_BUILD_OUTPUT"
+fi

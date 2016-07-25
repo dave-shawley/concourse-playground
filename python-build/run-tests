@@ -1,0 +1,37 @@
+#!/bin/sh -e
+#
+# vim: set ts=2 sw=2 sts=2 et:
+
+. /app/bootstrap
+
+
+cd "$PYTHON_BUILD_SOURCE"
+for file in requirements.txt test-requirements.txt requires/testing.txt requires/installation.txt
+do
+  if test -e $file
+  then
+    $PIP install -r $file
+  fi
+done
+
+if test -n "$PYTHON_BUILD_ADDITIONAL_PACKAGES"
+then
+  $PIP install $PYTHON_BUILD_ADDITIONAL_PACKAGES
+fi
+
+$PIP install -e .
+
+if test -e tests.py
+then
+  tests=tests.py
+else
+  tests=tests
+fi
+
+$PIP install nose coverage
+nosetests \
+  --with-xunit --xunit-file $PYTHON_BUILD_OUTPUT/nosetests.xml \
+  --with-coverage --cover-branches  \
+  --cover-xml --cover-xml-file $PYTHON_BUILD_OUTPUT/coverage.xml \
+  --cover-html --cover-html-dir $PYTHON_BUILD_OUTPUT/coverage-report \
+  $tests
