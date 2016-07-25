@@ -1,0 +1,56 @@
+resources:
+  -
+    name: source
+    type: git
+    source:
+      uri: https://github.com/sprockets/sprockets.http
+      branch: master
+
+jobs:
+  -
+    name: run-tests
+    plan:
+      -
+        get: source
+      -
+        task: run-tests
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: daveshawley/python-build
+              tag: latest
+          inputs:
+            -
+              name: source
+          outputs:
+            -
+              name: build
+          params:
+            PYTHON_BUILD_SOURCE: source
+            PYTHON_BUILD_OUTPUT: build
+          run:
+            path: /app/run-tests
+      -
+        task: update-sonar
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: daveshawley/python-sonar-uploader
+              tag: latest
+          inputs:
+            -
+              name: source
+            -
+              name: build
+          run:
+            path: /app/run
+          params:
+            SONAR_PROJECT_KEY: sprockets:http
+            SONAR_SOURCE_DIR: source
+            SONAR_XUNIT_XML: build/nosetests.xml
+            SONAR_COVERAGE_XML: build/coverage.xml
+            SONAR_URL: http://172.17.0.1:9000
