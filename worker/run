@@ -1,8 +1,0 @@
-#!/bin/sh
-#
-
-myip=$(awk "/$(hostname)/ {print \$1}" /etc/hosts)
-/app/bin/concourse_linux_amd64 worker \
-	--work-dir /app/work --peer-ip=$myip \
-	--tsa-host frontend --tsa-public-key /app/keystore/host_key.pub \
-	--tsa-worker-private-key /app/keystore/worker_key

@@ -25,10 +25,7 @@ Start up the Environment
 ------------------------
 ::
 
-   $ docker-compose up -d postgres
-   $ docker-compose scale scheduler=2
-   $ docker-compose up -d frontend
-   $ docker-compose scale worker=5
+   $ docker-compose up -d --scale worker=3
 
 Verify
 ------
@@ -86,10 +83,6 @@ Verify
 
 What you have in front of you
 =============================
-- HA Proxy acting as a front end to the schedulers
-  - Concourse API at ``http://127.0.0.1:9999``
-  - Admin UI listened at ``docker-compose port frontend 8080``
-  - Admin console listening at ``docker-compose port frontend 8181``
-- Data stored in standalone postgres instance
-- Pair of schedulers
+- A single scheduler running at ``http://127.0.0.1:9999``
 - Three workers
+- Data stored in standalone postgres instance

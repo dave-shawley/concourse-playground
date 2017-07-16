@@ -1,33 +1,47 @@
-frontend:
-  build: frontend
-  ports:
-    - 8080
-    - 8181
-    - 9999:80
-  links:
-    - scheduler
+version: '3'
 
-postgres:
-  build: database
-  ports:
-    - 5432
-  environment:
-    CONCOURSE_PASSWORD_HASH: e9c57016c3f4d87870fe4e4ecb7d7a6b
-    POSTGRES_PASSWORD: md5b988cfaa5ea2a14c1ec79d59a5a949f6
+services:
 
-scheduler:
-  build: scheduler
-  volumes:
-    - ./keys:/app/keystore
-  links:
-    - postgres
-  environment:
-    CONCOURSE_EXTERNAL_URL: http://127.0.0.1:9999/
+  postgres:
+    build: database
+    ports:
+      - 5432
+    environment:
+      CONCOURSE_PASSWORD_HASH: e9c57016c3f4d87870fe4e4ecb7d7a6b
+      POSTGRES_PASSWORD: md5b988cfaa5ea2a14c1ec79d59a5a949f6
 
-worker:
-  build: worker
-  links:
-    - frontend
-  privileged: true
-  volumes:
-    - ./keys:/app/keystore
+  scheduler:
+    image: concourse/concourse
+    command: web
+    volumes:
+      - ./keys:/concourse-keys
+    environment:
+      CONCOURSE_BASIC_AUTH_USERNAME: me
+      CONCOURSE_BASIC_AUTH_PASSWORD: secret
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/host_key
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_keys
+      CONCOURSE_POSTGRES_DATA_SOURCE: "postgres://concourse:password@postgres/concourse"
+      CONCOURSE_EXTERNAL_URL: http://127.0.0.1:9999/
+    ports:
+      - 2222
+      - 8079
+      - 9999:8080
+    depends_on:
+      - postgres
+
+  worker:
+    image: concourse/concourse
+    privileged: true
+    command: worker
+    volumes:
+      - ./keys:/concourse-keys
+    ports:
+      - 7777
+      - 7788
+    depends_on:
+      - scheduler
+    environment:
+      CONCOURSE_TSA_HOST: scheduler
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/host_key.pub
+      CONCOURSE_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
